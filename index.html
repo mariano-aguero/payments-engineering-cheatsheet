@@ -235,6 +235,351 @@
 </div>
 <p style="color:var(--text-muted);font-size:.9rem">Stages 1 and 7 are the same discipline at different times. Stage 5 is the only one that must never lose data.</p>
 
+<div class="sim" id="sim">
+  <div class="sim-bar">
+    <button class="btn ok" data-load="success">A payment that works</button>
+    <button class="btn bad" data-load="failure">The provider times out</button>
+    <span class="state" id="simState">idle</span>
+  </div>
+
+  <div class="sim-bar transport">
+    <button class="btn ghost" data-go="prev" title="Previous step (left arrow)">&#9664; Back</button>
+    <button class="btn play" data-go="play" title="Play or pause (space)">&#9654; Play</button>
+    <button class="btn ghost" data-go="next" title="Next step (right arrow)">Forward &#9654;</button>
+    <button class="btn ghost" data-go="reset" title="Back to the start">&#8634; Reset</button>
+    <span class="counter" id="counter">0 / 0</span>
+  </div>
+
+  <div class="track" id="track">
+    <div class="tip" id="tip" hidden></div>
+    <div class="token" id="token"><span>250.00<small>USD</small></span></div>
+    <div class="mod" data-mod="0"><b>Intake</b><i>idempotency key</i></div>
+    <div class="mod" data-mod="1"><b>Admission</b><i>KYC, sanctions</i></div>
+    <div class="mod" data-mod="2"><b>Ledger</b><i>hold, double entry</i></div>
+    <div class="mod" data-mod="3"><b>Orchestrator</b><i>saga</i></div>
+    <div class="mod" data-mod="4"><b>Queue</b><i>outbox, published once</i></div>
+    <div class="mod" data-mod="5"><b>Rail adapter</b><i>vendor boundary</i></div>
+    <div class="mod" data-mod="6"><b>Provider</b><i>outside your control</i></div>
+    <div class="mod" data-mod="7"><b>Reconcile</b><i>three way match</i></div>
+  </div>
+
+  <p class="now" id="now">Pick a scenario, then step through it with Back and Forward.</p>
+
+  <div class="panes">
+    <div class="pane">
+      <h4>Event log</h4>
+      <ol class="log" id="log"><li class="muted">Nothing yet.</li></ol>
+    </div>
+    <div class="pane">
+      <h4>Payment object</h4>
+      <div class="obj" id="obj"><p class="muted small">Nothing yet.</p></div>
+      <h4 style="margin-top:18px">Ledger</h4>
+      <table class="mini" id="ledger"><tbody><tr class="muted"><td colspan="3">No entries yet.</td></tr></tbody></table>
+      <h4 style="margin-top:18px">Exception queue <span class="pill" id="queueCount">0</span></h4>
+      <p class="muted small" id="queueNote">Empty.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+.sim { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin: 24px 0 8px; }
+.sim-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.sim-bar.transport { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+.btn { font-family: inherit; font-size: .88rem; font-weight: 600; border-radius: 6px; padding: 8px 14px; cursor: pointer; border: 1px solid transparent; transition: opacity .15s, background .15s; }
+.btn:hover:not(:disabled) { opacity: .85; }
+.btn:disabled { opacity: .3; cursor: default; }
+.btn.ok { background: var(--accent-primary); color: #06231b; }
+.btn.bad { background: var(--accent-warning); color: #2a1004; }
+.btn.play { background: var(--bg-tertiary); color: var(--accent-primary); border-color: var(--accent-primary); min-width: 104px; }
+.btn.ghost { background: transparent; color: var(--text-secondary); border-color: var(--border-color); }
+.btn.ok[aria-pressed="true"], .btn.bad[aria-pressed="true"] { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+.sim .state, .sim .counter { font-family: var(--font-mono); font-size: .8rem; color: var(--text-secondary); margin-left: auto; text-transform: uppercase; letter-spacing: .06em; }
+
+.track { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; padding: 34px 0 10px; margin-top: 18px; }
+.mod { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s, transform .2s; }
+.mod:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.tip { position: absolute; z-index: 5; width: 290px; background: var(--bg-code); border: 1px solid var(--accent-primary); border-radius: 8px; padding: 11px 14px; font-size: .78rem; line-height: 1.5; color: var(--text-secondary); box-shadow: 0 10px 34px rgba(0,0,0,.55); pointer-events: none; }
+.tip b { display: block; font-family: var(--font-mono); font-size: .8rem; color: var(--accent-primary); margin-bottom: 5px; }
+.mod b { display: block; font-size: .82rem; color: var(--text-primary); }
+.mod i { display: block; font-style: normal; font-size: .68rem; color: var(--text-muted); margin-top: 3px; line-height: 1.3; }
+.mod.active { border-color: var(--accent-primary); background: rgba(45,212,167,.1); transform: translateY(-3px); }
+.mod.done { border-color: rgba(45,212,167,.45); }
+.mod.warn { border-color: var(--accent-warning); background: rgba(255,107,53,.1); }
+.mod.err { border-color: var(--accent-danger); background: rgba(255,56,96,.12); }
+
+.token { position: absolute; top: 0; left: 0; width: 66px; height: 28px; border-radius: 14px; background: var(--gradient-main); color: #06231b; font-family: var(--font-mono); font-size: .66rem; font-weight: 700; display: flex; align-items: center; justify-content: center; opacity: 0; transition: transform .45s cubic-bezier(.4,.1,.3,1), opacity .25s, background .25s; z-index: 2; }
+.token small { font-size: .55rem; margin-left: 3px; opacity: .8; }
+.token.on { opacity: 1; }
+.token.bad { background: var(--accent-danger); color: #fff; }
+.token.back { background: var(--accent-secondary); color: #2a1a02; }
+
+.now { font-family: var(--font-mono); font-size: .82rem; color: var(--text-primary); background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary); border-radius: 6px; padding: 10px 14px; margin: 6px 0 0; min-height: 40px; }
+.now.warn { border-color: var(--accent-warning); }
+.now.err { border-color: var(--accent-danger); }
+.now.note { border-color: var(--accent-purple); }
+.now.muted { color: var(--text-muted); border-color: var(--border-color); }
+
+.panes { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; margin-top: 20px; }
+.pane h4 { font-size: .75rem; text-transform: uppercase; letter-spacing: .07em; color: var(--accent-primary); margin-bottom: 8px; }
+.log { list-style: none; margin: 0; font-family: var(--font-mono); font-size: .78rem; max-height: 200px; overflow-y: auto; }
+.log li { padding: 4px 0 4px 14px; border-left: 2px solid var(--border-color); color: var(--text-secondary); margin: 0; }
+.log li.ok { border-color: var(--accent-primary); }
+.log li.warn { border-color: var(--accent-warning); color: #ffb08a; }
+.log li.err { border-color: var(--accent-danger); color: #ff8fa3; }
+.log li.note { border-color: var(--accent-purple); }
+.log li.at { background: rgba(255,255,255,.04); }
+.log li b { color: var(--text-primary); }
+.obj { font-family: var(--font-mono); font-size: .74rem; background: var(--bg-code); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; max-height: 250px; overflow-y: auto; }
+.obj .grp { color: var(--accent-secondary); margin-bottom: 3px; }
+.obj .grp span { color: var(--text-muted); }
+.obj .grp + .grp { margin-top: 10px; }
+.obj .row { display: flex; gap: 8px; padding: 1px 0 1px 10px; color: var(--text-secondary); }
+.obj .row .k { color: var(--text-muted); min-width: 122px; }
+.obj .row .v { color: var(--text-primary); word-break: break-all; }
+.obj .row.new { background: rgba(45,212,167,.12); border-radius: 3px; }
+.obj .row.new .k { color: var(--accent-primary); }
+.obj .frozen .row .v { color: var(--text-secondary); }
+table.mini { width: 100%; font-family: var(--font-mono); font-size: .74rem; margin: 0; }
+table.mini td { padding: 5px 6px; border-bottom: 1px solid var(--border-color); }
+table.mini td:last-child { text-align: right; }
+.pill { display: inline-block; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 10px; padding: 0 8px; font-family: var(--font-mono); font-size: .72rem; }
+.pill.hot { border-color: var(--accent-warning); color: var(--accent-warning); }
+.muted { color: var(--text-muted); }
+.small { font-size: .78rem; }
+
+@media (max-width: 760px) {
+  .track { grid-template-columns: 1fr; padding-top: 10px; }
+  .panes { grid-template-columns: 1fr; }
+  .sim .state, .sim .counter { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .token { transition: none; } }
+</style>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const sim = $('sim'), track = $('track'), token = $('token'), log = $('log');
+  const stateEl = $('simState'), counter = $('counter'), now = $('now');
+  const ledgerEl = document.querySelector('#ledger tbody');
+  const queueCount = $('queueCount'), queueNote = $('queueNote');
+  const mods = [...track.querySelectorAll('.mod')];
+  const playBtn = sim.querySelector('[data-go="play"]');
+
+  // module, text, payment state, kind, optional ledger entry, moving backwards
+  const REQUEST = {
+    success: { idempotency_key: 'a1f3c2', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7781' },
+    failure: { idempotency_key: 'b7e9d1', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7782' }
+  };
+
+  // module, text, payment state, kind, ledger entry, backwards, fields this stage adds
+  const SCENARIOS = {
+    success: [
+      [0, 'key <b>a1f3c2</b> seen for the first time, request accepted', 'received', 'ok', null, false, { payment_id: 'pay_31a7', received_at: '14:02:11.418Z' }],
+      [1, 'sanctions clear, KYC valid, no review needed', 'admitted', 'ok', null, false, { screening: 'clear', risk_band: 'low' }],
+      [2, 'hold placed, user debited against clearing', 'authorized', 'ok', ['user', 'clearing', '250.00'], false, { hold_id: 'hld_77c', ledger_entries: '1' }],
+      [3, 'saga started, three steps with compensations ready', 'authorized', 'ok', null, false, { saga_id: 'sg_1180', compensations: 'armed' }],
+      [4, 'event written in the same transaction, published once', 'authorized', 'ok', null, false, { event_id: 'evt_5521' }],
+      [5, 'provider chosen behind the adapter, deadline 8s', 'submitted', 'ok', null, false, { provider: 'psp_north', deadline_ms: '8000', attempt: '1' }],
+      [6, 'provider authorized it, reference <b>PSP-8842</b>', 'submitted', 'ok', null, false, { provider_ref: 'PSP-8842' }],
+      [2, 'capture booked, clearing moves to the provider', 'captured', 'ok', ['clearing', 'provider', '250.00'], false, { ledger_entries: '2', captured_at: '14:02:13.006Z' }],
+      [7, 'settlement file matched on the correlation id', 'settled', 'ok', null, false, { matched_in: 'stl_20260927', value_date: 'T+1' }]
+    ],
+    failure: [
+      [0, 'key <b>b7e9d1</b> seen for the first time, request accepted', 'received', 'ok', null, false, { payment_id: 'pay_44c9', received_at: '15:47:02.771Z' }],
+      [1, 'sanctions clear, KYC valid, no review needed', 'admitted', 'ok', null, false, { screening: 'clear', risk_band: 'low' }],
+      [2, 'hold placed, user debited against clearing', 'authorized', 'ok', ['user', 'clearing', '250.00'], false, { hold_id: 'hld_91e', ledger_entries: '1' }],
+      [3, 'saga started, three steps with compensations ready', 'authorized', 'ok', null, false, { saga_id: 'sg_1204', compensations: 'armed' }],
+      [4, 'event written in the same transaction, published once', 'authorized', 'ok', null, false, { event_id: 'evt_5603' }],
+      [5, 'attempt 1 timed out at 8s, retrying with backoff and jitter', 'submitted', 'warn', null, false, { provider: 'psp_north', attempt: '1', last_error: 'timeout' }],
+      [6, 'attempt 2 timed out, breaker opens, this provider is out', 'submitted', 'err', null, false, { attempt: '2', breaker: 'open' }],
+      [6, 'silence. The request may have landed or may not have', 'unknown', 'err', null, false, { provider_ref: 'unknown', outcome: 'indeterminate' }],
+      [3, 'saga compensates, and stops: a refund now could pay twice', 'compensating', 'warn', null, true, { compensations: 'running' }],
+      [2, 'hold released with a new entry, never by editing the old one', 'compensated', 'ok', ['clearing', 'user', '250.00'], true, { ledger_entries: '2', hold_id: 'released' }],
+      [7, 'break opened for a human, provider state still unknown', 'in review', 'note', null, true, { break_id: 'brk_204', assigned_to: 'ops' }],
+      [7, 'next settlement file shows nothing settled, break closed', 'failed', 'ok', null, false, { matched_in: 'stl_20260928', settled: 'false', break_id: 'closed' }]
+    ]
+  };
+
+  const DESC = [
+    ['Intake', 'Receives the request and decides whether it is new. The idempotency key is stored before any work happens, so a retry returns the first answer instead of creating a second payment.'],
+    ['Admission', 'Decides whether this party may move money at all. KYC or KYB on the account, sanctions and PEP screening on the parties. A hard hit blocks inline, anything fuzzy goes to a review queue.'],
+    ['Ledger', 'The only source of truth. Every movement is at least two entries that sum to zero, appended and never edited, and balances are a projection that can be rebuilt from zero.'],
+    ['Orchestrator', 'Owns the sequence and what happens when a step fails. Runs the saga, holds the compensations, and decides whether to undo or to stop and escalate.'],
+    ['Queue', 'Carries events without losing them or duplicating their effects. The event is written in the same transaction as the state change, and the consumer dedups on a stable event id.'],
+    ['Rail adapter', 'The boundary with the outside world. One adapter per provider so their dialect never reaches your domain, with a timeout budget, retries, a circuit breaker and a declared fail closed or fail open policy.'],
+    ['Provider', 'Outside your control. It can be slow, it can be wrong, and it can time out after having done the work. Its answer is a signal, never the source of truth.'],
+    ['Reconcile', 'Compares your ledger against the provider report and the bank statement, matching on the correlation id. Whatever does not match becomes an item in the exception queue, with an owner.']
+  ];
+
+  const tip = $('tip');
+
+  function showTip(el) {
+    const n = +el.dataset.mod;
+    tip.innerHTML = '<b>' + DESC[n][0] + '</b>' + DESC[n][1];
+    tip.hidden = false;
+    const t = track.getBoundingClientRect(), m = el.getBoundingClientRect();
+    const left = Math.max(0, Math.min(t.width - tip.offsetWidth, m.left - t.left + m.width / 2 - tip.offsetWidth / 2));
+    tip.style.left = left + 'px';
+    tip.style.top = (m.bottom - t.top + 10) + 'px';
+  }
+  const hideTip = () => { tip.hidden = true; };
+
+  mods.forEach((m) => (m.tabIndex = 0));
+
+  // Delegacion con mouseover, que si burbujea desde los hijos del cuadrado.
+  track.addEventListener('mouseover', (e) => {
+    const m = e.target.closest('.mod');
+    if (m) showTip(m);
+  });
+  track.addEventListener('mouseout', (e) => {
+    const m = e.target.closest('.mod');
+    if (m && !m.contains(e.relatedTarget)) hideTip();
+  });
+  track.addEventListener('focusin', (e) => {
+    const m = e.target.closest('.mod');
+    if (m) showTip(m);
+  });
+  track.addEventListener('focusout', hideTip);
+  track.addEventListener('click', (e) => {
+    const m = e.target.closest('.mod');
+    if (m) { e.stopPropagation(); showTip(m); }
+  });
+  document.addEventListener('click', hideTip);
+
+  let steps = [], i = -1, timer = null, current = null;
+
+  function moveTo(step) {
+    const t = track.getBoundingClientRect(), m = mods[step[0]].getBoundingClientRect();
+    token.className = 'token on' + (step[3] === 'err' ? ' bad' : step[5] ? ' back' : '');
+    token.style.transform = 'translate(' + (m.left - t.left + m.width / 2 - token.offsetWidth / 2) + 'px,'
+      + (m.top - t.top - token.offsetHeight - 6) + 'px)';
+  }
+
+  // El estado se dibuja entero desde el indice, asi ir atras es lo mismo que ir adelante.
+  function render() {
+    mods.forEach((m) => (m.className = 'mod'));
+    log.innerHTML = '';
+    ledgerEl.innerHTML = '';
+    let queue = 0;
+
+    steps.slice(0, i + 1).forEach((s, n) => {
+      const [mod, text, state, kind, entry] = s;
+      mods[mod].classList.add(kind === 'err' ? 'err' : kind === 'warn' ? 'warn' : 'done');
+      const li = document.createElement('li');
+      li.className = (kind || '') + (n === i ? ' at' : '');
+      li.innerHTML = text;
+      log.appendChild(li);
+      if (entry) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + entry[0] + '</td><td>' + entry[1] + '</td><td>' + entry[2] + '</td>';
+        ledgerEl.appendChild(tr);
+      }
+      if (state === 'in review') queue = 1;
+      if (state === 'failed' || state === 'settled') queue = 0;
+    });
+
+    if (i < 0) {
+      token.className = 'token';
+      log.innerHTML = '<li class="muted">Nothing yet.</li>';
+      ledgerEl.innerHTML = '<tr class="muted"><td colspan="3">No entries yet.</td></tr>';
+      now.className = 'now muted';
+      now.textContent = steps.length ? 'Ready. Forward takes one step.' : 'Pick a scenario, then step through it with Back and Forward.';
+      stateEl.textContent = 'idle';
+    } else {
+      const s = steps[i];
+      mods[s[0]].classList.add('active');
+      moveTo(s);
+      now.className = 'now ' + (s[3] || '');
+      now.innerHTML = s[1];
+      stateEl.textContent = s[2];
+      log.scrollTop = log.scrollHeight;
+    }
+
+    paintObject();
+
+    queueCount.textContent = queue;
+    queueCount.className = queue ? 'pill hot' : 'pill';
+    queueNote.textContent = queue
+      ? 'One item, waiting on the provider report. Nobody guesses the outcome.'
+      : i >= 0 && steps[i][2] === 'failed' ? 'Closed by reconciliation, not by assumption.' : 'Empty.';
+
+    counter.textContent = (i + 1) + ' / ' + steps.length;
+    sim.querySelector('[data-go="prev"]').disabled = i < 0;
+    sim.querySelector('[data-go="next"]').disabled = !steps.length || i >= steps.length - 1;
+    playBtn.disabled = !steps.length;
+  }
+
+  // El request del cliente no se toca nunca. Lo que crece es el registro derivado.
+  function paintObject() {
+    const objEl = $('obj');
+    if (i < 0 || !current) { objEl.innerHTML = '<p class="muted small">Nothing yet.</p>'; return; }
+    const record = {};
+    let fresh = {};
+    steps.slice(0, i + 1).forEach((s, n) => {
+      const patch = s[6] || {};
+      Object.assign(record, patch);
+      if (n === i) fresh = Object.assign({}, patch); // copia: escribirle a s[6] corrompe el escenario
+    });
+    record.status = steps[i][2];
+    if (steps[i][2] !== (steps[i - 1] || [])[2]) fresh.status = record.status;
+
+    const rows = (o, isNew) => Object.entries(o).map(([k, v]) =>
+      '<div class="row' + (isNew && k in fresh ? ' new' : '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>').join('');
+
+    objEl.innerHTML =
+      '<div class="grp">request <span>immutable, as the client sent it</span></div>' +
+      '<div class="frozen">' + rows(REQUEST[current], false) + '</div>' +
+      '<div class="grp">payment <span>derived, each stage adds to it</span></div>' +
+      rows(record, true);
+  }
+
+  function step(d) { i = Math.max(-1, Math.min(steps.length - 1, i + d)); render(); }
+
+  function pause() { clearInterval(timer); timer = null; playBtn.innerHTML = '&#9654; Play'; }
+
+  function play() {
+    if (timer) return pause();
+    if (i >= steps.length - 1) i = -1;
+    playBtn.innerHTML = '&#10073;&#10073; Pause';
+    timer = setInterval(() => { i >= steps.length - 1 ? pause() : step(1); }, 1500);
+    step(1);
+  }
+
+  function load(name) {
+    pause();
+    steps = SCENARIOS[name];
+    current = name;
+    i = -1;
+    sim.querySelectorAll('[data-load]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.load === name));
+    render();
+  }
+
+  sim.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.load) return load(b.dataset.load);
+    const go = b.dataset.go;
+    if (go === 'play') return play();
+    pause();
+    if (go === 'next') step(1);
+    if (go === 'prev') step(-1);
+    if (go === 'reset') { i = -1; render(); }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!steps.length || !sim.getBoundingClientRect().height) return;
+    const inView = sim.getBoundingClientRect().top < innerHeight && sim.getBoundingClientRect().bottom > 0;
+    if (!inView) return;
+    if (e.key === 'ArrowRight') { pause(); step(1); }
+    if (e.key === 'ArrowLeft') { pause(); step(-1); }
+    if (e.key === ' ') { e.preventDefault(); play(); }
+  });
+
+  addEventListener('resize', render);
+  render();
+})();
+</script>
+
 <h2><span class="num">01</span>Admission: who may move money</h2>
 <p class="lede">Compliance is not a checkbox before the feature. It is a stage with its own state, its own queue and its own audit trail, and it produces events the rest of the system reads.</p>
 
@@ -570,6 +915,52 @@
 
 <p>Both sides still need stages 2 through 6 unchanged: one intent, a saga that can compensate, a ledger that balances, a reconciliation that finds the break. That is the part worth learning once, because it is the part that transfers.</p>
 
+
+<h2><span class="num">14</span>Field glossary</h2>
+<p class="lede">Every field the simulator above shows, what writes it and why it exists. The names are illustrative rather than a standard schema, but each one stands for something a real payment record has to carry.</p>
+
+<h3>request: what the caller sent, never modified</h3>
+<table>
+<thead><tr><th>field</th><th>stage</th><th>what it is</th></tr></thead>
+<tbody>
+<tr><td>idempotency_key</td><td>caller</td><td>The caller's key. A repeat with the same key returns the first answer instead of creating a second payment.</td></tr>
+<tr><td>amount</td><td>caller</td><td>Minor units as an integer, so 25000 is 250.00 USD. Stored raw, formatted only where a human reads it, which is why the badge in the diagram shows 250.00 and the record shows 25000.</td></tr>
+<tr><td>currency</td><td>caller</td><td>Travels with the amount as one value. An amount without its currency is not money.</td></tr>
+<tr><td>debtor</td><td>caller</td><td>Who pays, using the ISO 20022 word. The card world would say cardholder.</td></tr>
+<tr><td>creditor</td><td>caller</td><td>Who receives.</td></tr>
+<tr><td>reference</td><td>caller</td><td>The caller's own reference, an invoice or order id. It is how they will look this up later, and it is not your id.</td></tr>
+</tbody>
+</table>
+
+<h3>payment: the record your system derives</h3>
+<table>
+<thead><tr><th>field</th><th>stage</th><th>what it is</th></tr></thead>
+<tbody>
+<tr><td>payment_id</td><td>Intake</td><td>Your internal id. Distinct from the idempotency key on purpose: the key belongs to the caller, the id belongs to you.</td></tr>
+<tr><td>received_at</td><td>Intake</td><td>Event time, the first of the two clocks. The other one is the booking date.</td></tr>
+<tr><td>screening</td><td>Admission</td><td>Outcome of sanctions and PEP screening. A hard hit blocks inline, anything fuzzy becomes a review item.</td></tr>
+<tr><td>risk_band</td><td>Admission</td><td>The bucket a risk score falls into, which is what decides straight through or manual review.</td></tr>
+<tr><td>hold_id</td><td>Ledger</td><td>The reservation against the balance. It expires if nothing captures it, and expiry is your job, not the rail's. Becomes released when a compensation runs.</td></tr>
+<tr><td>ledger_entries</td><td>Ledger</td><td>How many entries this payment has written. It only ever goes up, which is the point: corrections are new entries, never edits.</td></tr>
+<tr><td>saga_id</td><td>Orchestrator</td><td>The id of this orchestration run. It is what you search for when something is half finished.</td></tr>
+<tr><td>compensations</td><td>Orchestrator</td><td>Whether the undo steps are registered and whether they are running. Armed before anything risky happens, not after.</td></tr>
+<tr><td>event_id</td><td>Queue</td><td>The stable id the consumer dedups on. It is what makes at-least-once delivery safe to build on.</td></tr>
+<tr><td>provider</td><td>Rail adapter</td><td>Which vendor took the call. Worth recording per attempt, because with more than one provider it can differ between them.</td></tr>
+<tr><td>deadline_ms</td><td>Rail adapter</td><td>The time budget for this call, propagated from the caller so an inner hop cannot spend time the outer one no longer has.</td></tr>
+<tr><td>attempt</td><td>Rail adapter</td><td>Which try this is. Retries are only safe because the idempotency key is carried with them.</td></tr>
+<tr><td>last_error</td><td>Rail adapter</td><td>Why the previous attempt failed, kept because a timeout and a decline need opposite handling.</td></tr>
+<tr><td>breaker</td><td>Rail adapter</td><td>Circuit breaker state. Open means stop calling and let the provider recover.</td></tr>
+<tr><td>provider_ref</td><td>Provider</td><td>The reference the provider gives back, and your only handle on their side. Unknown after a timeout, which is exactly the hard case.</td></tr>
+<tr><td>outcome</td><td>Provider</td><td>What the provider actually did. Indeterminate is a real value and has to be modelled, not collapsed into failure.</td></tr>
+<tr><td>captured_at</td><td>Ledger</td><td>When the promise became a claim. Authorization and capture are different moments even when a rail hides it.</td></tr>
+<tr><td>matched_in</td><td>Reconcile</td><td>Which settlement file matched this payment, matched on the correlation id and never on amount plus date.</td></tr>
+<tr><td>value_date</td><td>Reconcile</td><td>When the money books, which is not when the payment happened. This is the second clock.</td></tr>
+<tr><td>settled</td><td>Reconcile</td><td>What the provider report says actually moved. False here closed the case without anyone guessing.</td></tr>
+<tr><td>break_id</td><td>Reconcile</td><td>The exception queue item created when the two sides disagree.</td></tr>
+<tr><td>assigned_to</td><td>Reconcile</td><td>Who owns that break. An unassigned break is a break nobody closes.</td></tr>
+<tr><td>status</td><td>every stage</td><td>The current state of the payment state machine. Every stage advances it, and terminal states never move again.</td></tr>
+</tbody>
+</table>
 
 <footer>
 <p>Maintained by <a href="https://github.com/mariano-aguero/payments-engineering-cheatsheet">mariano-aguero/payments-engineering-cheatsheet</a>. Corrections and additions via pull request are welcome.</p>
