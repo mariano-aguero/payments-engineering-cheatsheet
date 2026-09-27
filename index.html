@@ -238,6 +238,7 @@
 <div class="sim" id="sim">
   <div class="sim-bar">
     <button class="btn ok" data-load="success">A payment that works</button>
+    <button class="btn alt" data-load="duplicate">The same request twice</button>
     <button class="btn bad" data-load="sanctions">Sanctions hit</button>
     <button class="btn bad" data-load="declined">The provider declines</button>
     <button class="btn bad" data-load="failure">The provider times out</button>
@@ -295,6 +296,7 @@
 .btn:disabled { opacity: .3; cursor: default; }
 .btn.ok { background: var(--accent-primary); color: #06231b; }
 .btn.bad { background: var(--accent-warning); color: #2a1004; }
+.btn.alt { background: var(--accent-purple); color: #1b0733; }
 .btn.play { background: var(--bg-tertiary); color: var(--accent-primary); border-color: var(--accent-primary); min-width: 104px; }
 .btn.ghost { background: transparent; color: var(--text-secondary); border-color: var(--border-color); }
 .btn.ok[aria-pressed="true"], .btn.bad[aria-pressed="true"] { outline: 2px solid var(--text-primary); outline-offset: 2px; }
@@ -381,6 +383,7 @@ table.mini td:last-child { text-align: right; }
     success: { idempotency_key: 'a1f3c2', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7781' },
     failure: { idempotency_key: 'b7e9d1', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7782' },
     sanctions: { idempotency_key: 'c4d8e2', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_5518', reference: 'inv-7783' },
+    duplicate: { idempotency_key: 'a1f3c2', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7781' },
     declined: { idempotency_key: 'd1a05f', amount: '25000', currency: 'USD', debtor: 'acct_3e71', creditor: 'mrc_0041', reference: 'inv-7784' }
   };
 
@@ -410,6 +413,11 @@ table.mini td:last-child { text-align: right; }
       [7, 'break opened, and the hold stays: the money is not free to spend yet', 'in review', 'note', null, true, { break_id: 'brk_204', assigned_to: 'ops' }],
       [7, 'next settlement file shows nothing settled. Now we know which side we are on', 'in review', 'ok', null, false, { matched_in: 'stl_20260928', settled: 'false' }],
       [3, 'only now step 1 is compensated, with a new entry and never an edit', 'failed', 'ok', ['clearing', 'user', '250.00'], true, { ledger_entries: '2', hold_id: 'released', break_id: 'closed' }]
+    ],
+    duplicate: [
+      [0, 'the same key <b>a1f3c2</b> arrives again, 40 ms after the first one', 'duplicate', 'warn', [['user', 'clearing', '250.00'], ['clearing', 'provider', '250.00']], false, { payment_id: 'pay_31a7', first_seen_at: '14:02:11.418Z', replay_at: '14:02:11.458Z' }],
+      [0, 'the stored response is returned exactly as it was. No new payment, no second hold', 'duplicate', 'ok', null, false, { returned: 'stored response', side_effects: 'none' }],
+      [3, 'the ledger is untouched: still two entries, not four. Nothing downstream even woke up', 'duplicate', 'ok', null, false, { ledger_entries: '2' }]
     ],
     sanctions: [
       [0, 'key <b>c4d8e2</b> seen for the first time, request accepted', 'received', 'ok', null, false, { payment_id: 'pay_58f1', received_at: '09:14:55.230Z' }],
@@ -504,9 +512,12 @@ table.mini td:last-child { text-align: right; }
       li.innerHTML = text;
       log.appendChild(li);
       if (entry) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + entry[0] + '</td><td>' + entry[1] + '</td><td>' + entry[2] + '</td>';
-        ledgerEl.appendChild(tr);
+        const lista = Array.isArray(entry[0]) ? entry : [entry];
+        lista.forEach((e) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + e[0] + '</td><td>' + e[1] + '</td><td>' + e[2] + '</td>';
+          ledgerEl.appendChild(tr);
+        });
       }
       if (state === 'in review') queue = 1;
       if (state === 'failed' || state === 'settled') queue = 0;
