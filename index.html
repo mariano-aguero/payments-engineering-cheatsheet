@@ -252,18 +252,21 @@
 
   <div class="track" id="track">
     <div class="tip" id="tip" hidden></div>
+    <div class="saga" id="saga" hidden><span>saga scope</span></div>
     <div class="token" id="token"><span>250.00<small>USD</small></span></div>
-    <div class="mod" data-mod="0"><b>Intake</b><i>idempotency key</i></div>
-    <div class="mod" data-mod="1"><b>Admission</b><i>KYC, sanctions</i></div>
-    <div class="mod" data-mod="2"><b>Ledger</b><i>hold, double entry</i></div>
-    <div class="mod" data-mod="3"><b>Orchestrator</b><i>saga</i></div>
-    <div class="mod" data-mod="4"><b>Queue</b><i>outbox, published once</i></div>
-    <div class="mod" data-mod="5"><b>Rail adapter</b><i>vendor boundary</i></div>
-    <div class="mod" data-mod="6"><b>Provider</b><i>outside your control</i></div>
-    <div class="mod" data-mod="7"><b>Reconcile</b><i>three way match</i></div>
+    <div class="mod" data-mod="0"><u>2</u><b>Intake</b><i>idempotency key</i></div>
+    <div class="mod" data-mod="1"><u>1</u><b>Admission</b><i>KYC, sanctions</i></div>
+    <div class="mod" data-mod="2"><u>3</u><b>Orchestrator</b><i>saga</i></div>
+    <div class="mod" data-mod="3"><u>5</u><b>Ledger</b><i>hold, double entry</i></div>
+    <div class="mod" data-mod="4"><u>3</u><b>Queue</b><i>outbox, published once</i></div>
+    <div class="mod" data-mod="5"><u>4</u><b>Rail adapter</b><i>vendor boundary</i></div>
+    <div class="mod" data-mod="6"><u>4</u><b>Provider</b><i>outside your control</i></div>
+    <div class="mod" data-mod="7"><u>6</u><b>Reconcile</b><i>three way match</i></div>
   </div>
 
-  <p class="now" id="now">Pick a scenario, then step through it with Back and Forward.</p>
+  <p class="map">Eight modules, seven stages. The small number on each box is the stage it belongs to: <b>Rail is two boxes</b> because the boundary with the provider is where things break, <b>the ledger is one box visited twice</b>, as saga steps 1 and 3, or as step 1 and its compensation when things go wrong, and <b>stage 7 has no box</b> because monitoring happens after the money left. A step is not a stage either: a retry is another step inside the same one.</p>
+
+<p class="now" id="now">Pick a scenario, then step through it with Back and Forward.</p>
 
   <div class="panes">
     <div class="pane">
@@ -296,10 +299,14 @@
 .sim .state, .sim .counter { font-family: var(--font-mono); font-size: .8rem; color: var(--text-secondary); margin-left: auto; text-transform: uppercase; letter-spacing: .06em; }
 
 .track { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; padding: 34px 0 10px; margin-top: 18px; }
-.mod { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s, transform .2s; }
+.mod { position: relative; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s, transform .2s; }
 .mod:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.saga { position: absolute; border: 1px dashed var(--accent-purple); border-radius: 10px; background: rgba(168,85,247,.06); cursor: pointer; z-index: 1; }
+.saga span { position: absolute; top: -9px; left: 12px; background: var(--bg-secondary); padding: 0 7px; font-family: var(--font-mono); font-size: .64rem; color: var(--accent-purple); letter-spacing: .05em; }
+.saga:hover { background: rgba(168,85,247,.12); }
 .tip { position: absolute; z-index: 5; width: 290px; background: var(--bg-code); border: 1px solid var(--accent-primary); border-radius: 8px; padding: 11px 14px; font-size: .78rem; line-height: 1.5; color: var(--text-secondary); box-shadow: 0 10px 34px rgba(0,0,0,.55); pointer-events: none; }
 .tip b { display: block; font-family: var(--font-mono); font-size: .8rem; color: var(--accent-primary); margin-bottom: 5px; }
+.mod u { position: absolute; top: 5px; right: 7px; font-family: var(--font-mono); font-size: .6rem; text-decoration: none; color: var(--text-muted); }
 .mod b { display: block; font-size: .82rem; color: var(--text-primary); }
 .mod i { display: block; font-style: normal; font-size: .68rem; color: var(--text-muted); margin-top: 3px; line-height: 1.3; }
 .mod.active { border-color: var(--accent-primary); background: rgba(45,212,167,.1); transform: translateY(-3px); }
@@ -313,6 +320,8 @@
 .token.bad { background: var(--accent-danger); color: #fff; }
 .token.back { background: var(--accent-secondary); color: #2a1a02; }
 
+.map { font-size: .8rem; color: var(--text-secondary); margin: 2px 0 14px; max-width: none; }
+.map b { color: var(--text-primary); }
 .now { font-family: var(--font-mono); font-size: .82rem; color: var(--text-primary); background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary); border-radius: 6px; padding: 10px 14px; margin: 6px 0 0; min-height: 40px; }
 .now.warn { border-color: var(--accent-warning); }
 .now.err { border-color: var(--accent-danger); }
@@ -376,35 +385,35 @@ table.mini td:last-child { text-align: right; }
     success: [
       [0, 'key <b>a1f3c2</b> seen for the first time, request accepted', 'received', 'ok', null, false, { payment_id: 'pay_31a7', received_at: '14:02:11.418Z' }],
       [1, 'sanctions clear, KYC valid, no review needed', 'admitted', 'ok', null, false, { screening: 'clear', risk_band: 'low' }],
-      [2, 'hold placed, user debited against clearing', 'authorized', 'ok', ['user', 'clearing', '250.00'], false, { hold_id: 'hld_77c', ledger_entries: '1' }],
-      [3, 'saga started, three steps with compensations ready', 'authorized', 'ok', null, false, { saga_id: 'sg_1180', compensations: 'armed' }],
+      [2, 'saga started, three steps, compensations armed before anything risky runs', 'admitted', 'ok', null, false, { saga_id: 'sg_1180', compensations: 'armed' }],
+      [3, 'step 1, reserve: hold placed, user debited against clearing', 'authorized', 'ok', ['user', 'clearing', '250.00'], false, { hold_id: 'hld_77c', ledger_entries: '1' }],
       [4, 'event written in the same transaction, published once', 'authorized', 'ok', null, false, { event_id: 'evt_5521' }],
-      [5, 'provider chosen behind the adapter, deadline 8s', 'submitted', 'ok', null, false, { provider: 'psp_north', deadline_ms: '8000', attempt: '1' }],
+      [5, 'step 2, submit: provider chosen behind the adapter, deadline 8s', 'submitted', 'ok', null, false, { provider: 'psp_north', deadline_ms: '8000', attempt: '1' }],
       [6, 'provider authorized it, reference <b>PSP-8842</b>', 'submitted', 'ok', null, false, { provider_ref: 'PSP-8842' }],
-      [2, 'capture booked, clearing moves to the provider', 'captured', 'ok', ['clearing', 'provider', '250.00'], false, { ledger_entries: '2', captured_at: '14:02:13.006Z' }],
+      [3, 'step 3, capture: clearing moves to the provider', 'captured', 'ok', ['clearing', 'provider', '250.00'], false, { ledger_entries: '2', captured_at: '14:02:13.006Z' }],
       [7, 'settlement file matched on the correlation id', 'settled', 'ok', null, false, { matched_in: 'stl_20260927', value_date: 'T+1' }]
     ],
     failure: [
       [0, 'key <b>b7e9d1</b> seen for the first time, request accepted', 'received', 'ok', null, false, { payment_id: 'pay_44c9', received_at: '15:47:02.771Z' }],
       [1, 'sanctions clear, KYC valid, no review needed', 'admitted', 'ok', null, false, { screening: 'clear', risk_band: 'low' }],
-      [2, 'hold placed, user debited against clearing', 'authorized', 'ok', ['user', 'clearing', '250.00'], false, { hold_id: 'hld_91e', ledger_entries: '1' }],
-      [3, 'saga started, three steps with compensations ready', 'authorized', 'ok', null, false, { saga_id: 'sg_1204', compensations: 'armed' }],
+      [2, 'saga started, three steps, compensations armed before anything risky runs', 'admitted', 'ok', null, false, { saga_id: 'sg_1204', compensations: 'armed' }],
+      [3, 'step 1, reserve: hold placed, user debited against clearing', 'authorized', 'ok', ['user', 'clearing', '250.00'], false, { hold_id: 'hld_91e', ledger_entries: '1' }],
       [4, 'event written in the same transaction, published once', 'authorized', 'ok', null, false, { event_id: 'evt_5603' }],
-      [5, 'attempt 1 timed out at 8s, retrying with backoff and jitter', 'submitted', 'warn', null, false, { provider: 'psp_north', attempt: '1', last_error: 'timeout' }],
-      [6, 'attempt 2 timed out, breaker opens, this provider is out', 'submitted', 'err', null, false, { attempt: '2', breaker: 'open' }],
+      [5, 'step 2, submit: attempt 1 timed out at 8s, retrying with backoff', 'submitted', 'warn', null, false, { provider: 'psp_north', attempt: '1', last_error: 'timeout' }],
+      [5, 'attempt 2 timed out, breaker opens, this provider is out', 'submitted', 'err', null, false, { attempt: '2', breaker: 'open' }],
       [6, 'silence. The request may have landed or may not have', 'unknown', 'err', null, false, { provider_ref: 'unknown', outcome: 'indeterminate' }],
-      [3, 'saga compensates, and stops: a refund now could pay twice', 'compensating', 'warn', null, true, { compensations: 'running' }],
-      [2, 'hold released with a new entry, never by editing the old one', 'compensated', 'ok', ['clearing', 'user', '250.00'], true, { ledger_entries: '2', hold_id: 'released' }],
-      [7, 'break opened for a human, provider state still unknown', 'in review', 'note', null, true, { break_id: 'brk_204', assigned_to: 'ops' }],
-      [7, 'next settlement file shows nothing settled, break closed', 'failed', 'ok', null, false, { matched_in: 'stl_20260928', settled: 'false', break_id: 'closed' }]
+      [2, 'saga stops. Step 1 is safe to undo, but not while step 2 is unknown', 'compensating', 'warn', null, true, { compensations: 'held' }],
+      [7, 'break opened, and the hold stays: the money is not free to spend yet', 'in review', 'note', null, true, { break_id: 'brk_204', assigned_to: 'ops' }],
+      [7, 'next settlement file shows nothing settled. Now we know which side we are on', 'in review', 'ok', null, false, { matched_in: 'stl_20260928', settled: 'false' }],
+      [3, 'only now step 1 is compensated, with a new entry and never an edit', 'failed', 'ok', ['clearing', 'user', '250.00'], true, { ledger_entries: '2', hold_id: 'released', break_id: 'closed' }]
     ]
   };
 
   const DESC = [
     ['Intake', 'Receives the request and decides whether it is new. The idempotency key is stored before any work happens, so a retry returns the first answer instead of creating a second payment.'],
-    ['Admission', 'Decides whether this party may move money at all. KYC or KYB on the account, sanctions and PEP screening on the parties. A hard hit blocks inline, anything fuzzy goes to a review queue.'],
+    ['Admission', 'Decides whether this party may move money at all. It runs twice in a payment system: once at onboarding, which is why it is stage 1 of the spine, and again per payment, which is why it sits after Intake here. KYC or KYB on the account, sanctions and PEP screening on the parties. A hard hit blocks inline, anything fuzzy goes to a review queue.'],
+    ['Orchestrator', 'Owns the sequence and what happens when a step fails. Arms the compensations before anything risky runs, and decides whether to undo or to stop and escalate.'],
     ['Ledger', 'The only source of truth. Every movement is at least two entries that sum to zero, appended and never edited, and balances are a projection that can be rebuilt from zero.'],
-    ['Orchestrator', 'Owns the sequence and what happens when a step fails. Runs the saga, holds the compensations, and decides whether to undo or to stop and escalate.'],
     ['Queue', 'Carries events without losing them or duplicating their effects. The event is written in the same transaction as the state change, and the consumer dedups on a stable event id.'],
     ['Rail adapter', 'The boundary with the outside world. One adapter per provider so their dialect never reaches your domain, with a timeout budget, retries, a circuit breaker and a declared fail closed or fail open policy.'],
     ['Provider', 'Outside your control. It can be slow, it can be wrong, and it can time out after having done the work. Its answer is a signal, never the source of truth.'],
@@ -413,9 +422,13 @@ table.mini td:last-child { text-align: right; }
 
   const tip = $('tip');
 
+  const SAGA = ['saga scope, three steps',
+    'The orchestrator owns these four modules as one unit of work. Step 1 reserves in the ledger, step 2 submits through the adapter to the provider, step 3 captures back in the ledger. Each step has a compensation, and they get weaker as you go: undoing the hold is your own ledger, voiding the authorization needs the provider to answer, and a refund after capture is not an undo at all, it is a new payment in the opposite direction.'];
+
   function showTip(el) {
     const n = +el.dataset.mod;
-    tip.innerHTML = '<b>' + DESC[n][0] + '</b>' + DESC[n][1];
+    const d = el.id === 'saga' ? SAGA : DESC[n];
+    tip.innerHTML = '<b>' + d[0] + '</b>' + d[1];
     tip.hidden = false;
     const t = track.getBoundingClientRect(), m = el.getBoundingClientRect();
     const left = Math.max(0, Math.min(t.width - tip.offsetWidth, m.left - t.left + m.width / 2 - tip.offsetWidth / 2));
@@ -575,12 +588,29 @@ table.mini td:last-child { text-align: right; }
     if (e.key === ' ') { e.preventDefault(); play(); }
   });
 
-  addEventListener('resize', render);
+  const saga = $('saga');
+  function placeSaga() {
+    const t = track.getBoundingClientRect();
+    const a = mods[3].getBoundingClientRect(), b = mods[6].getBoundingClientRect();
+    // Union en los dos ejes: en pantalla angosta los modulos se apilan y el marco es vertical.
+    const left = Math.min(a.left, b.left), top = Math.min(a.top, b.top);
+    saga.hidden = false;
+    saga.style.left = (left - t.left - 7) + 'px';
+    saga.style.top = (top - t.top - 7) + 'px';
+    saga.style.width = (Math.max(a.right, b.right) - left + 14) + 'px';
+    saga.style.height = (Math.max(a.bottom, b.bottom) - top + 14) + 'px';
+  }
+  saga.addEventListener('mouseover', () => showTip(saga));
+  saga.addEventListener('mouseout', hideTip);
+  saga.addEventListener('click', (e) => { e.stopPropagation(); showTip(saga); });
+
+  addEventListener('resize', () => { render(); placeSaga(); });
   render();
+  placeSaga();
 })();
 </script>
 
-<h2><span class="num">01</span>Field glossary</h2>
+<h2><span class="num">&#183;</span>Field glossary</h2>
 <p class="lede">Every field the simulator above shows, what writes it and why it exists. The names are illustrative rather than a standard schema, but each one stands for something a real payment record has to carry.</p>
 
 <h3>request: what the caller sent, never modified</h3>
@@ -609,7 +639,7 @@ table.mini td:last-child { text-align: right; }
 <tr><td>saga_id</td><td>Orchestrator</td><td>The id of this orchestration run. It is what you search for when something is half finished.</td></tr>
 <tr><td>compensations</td><td>Orchestrator</td><td>Whether the undo steps are registered and whether they are running. Armed before anything risky happens, not after.</td></tr>
 <tr><td>event_id</td><td>Queue</td><td>The stable id the consumer dedups on. It is what makes at-least-once delivery safe to build on.</td></tr>
-<tr><td>provider</td><td>Rail adapter</td><td>Which vendor took the call. Worth recording per attempt, because with more than one provider it can differ between them.</td></tr>
+<tr><td>provider</td><td>Rail adapter</td><td>Which provider took the call. Worth recording per attempt, because with more than one provider it can differ between them.</td></tr>
 <tr><td>deadline_ms</td><td>Rail adapter</td><td>The time budget for this call, propagated from the caller so an inner hop cannot spend time the outer one no longer has.</td></tr>
 <tr><td>attempt</td><td>Rail adapter</td><td>Which try this is. Retries are only safe because the idempotency key is carried with them.</td></tr>
 <tr><td>last_error</td><td>Rail adapter</td><td>Why the previous attempt failed, kept because a timeout and a decline need opposite handling.</td></tr>
@@ -626,7 +656,7 @@ table.mini td:last-child { text-align: right; }
 </tbody>
 </table>
 
-<h2><span class="num">02</span>Admission: who may move money</h2>
+<h2><span class="num">01</span>Admission: who may move money</h2>
 <p class="lede">Compliance is not a checkbox before the feature. It is a stage with its own state, its own queue and its own audit trail, and it produces events the rest of the system reads.</p>
 
 <table>
@@ -669,7 +699,7 @@ table.mini td:last-child { text-align: right; }
 
 <div class="invariant"><b>Connects to:</b> a refused payment is still a recorded event (stage 5), the refusal reason is a terminal state in the payment state machine (stage 2), and the vendor performing the check is behind an anti-corruption layer like any other third party (stage 3).</div>
 
-<h2><span class="num">03</span>Intent: capture the request exactly once</h2>
+<h2><span class="num">02</span>Intent: capture the request exactly once</h2>
 <p class="lede">The client will retry. The network will duplicate. The user will double click. This stage exists so that all of that produces one payment.</p>
 
 <div class="grid">
@@ -707,7 +737,7 @@ table.mini td:last-child { text-align: right; }
 
 <div class="invariant"><b>Connects to:</b> the idempotency key is the correlation id the ledger (stage 5) and the reconciliation (stage 6) both use to tie your record to the provider's record.</div>
 
-<h2><span class="num">04</span>Orchestration: several systems, one outcome</h2>
+<h2><span class="num">03</span>Orchestration: several systems, one outcome</h2>
 <p class="lede">A payment touches your ledger, a compliance vendor, a provider and a notification. They fail independently. This stage is about what a half finished payment looks like.</p>
 
 <div class="grid">
@@ -743,7 +773,7 @@ table.mini td:last-child { text-align: right; }
 </div>
 </div>
 
-<h2><span class="num">05</span>Third parties you cannot trust</h2>
+<h2><span class="num">04</span>Third parties you cannot trust</h2>
 <p class="lede">Every provider has a bad day. The engineering question is never whether, it is what your system does that day. This block is where most of the operational scar tissue in a payment system lives.</p>
 
 <div class="grid">
@@ -779,7 +809,7 @@ table.mini td:last-child { text-align: right; }
 </div>
 </div>
 
-<h2><span class="num">06</span>Record: the ledger is the truth</h2>
+<h2><span class="num">05</span>Record: the ledger is the truth</h2>
 <p class="lede">Every other store in the system is a cache of this one. If a number can be recomputed from the ledger it is a projection, and projections may be rebuilt at any time.</p>
 
 <div class="grid">
@@ -817,7 +847,7 @@ table.mini td:last-child { text-align: right; }
 
 <div class="invariant"><b>The invariant to test first:</b> the sum of all debits equals the sum of all credits, at every point in time, for every currency. It is one property test and it catches an enormous class of bugs before they reach money.</div>
 
-<h2><span class="num">07</span>Reconcile: our truth against theirs</h2>
+<h2><span class="num">06</span>Reconcile: our truth against theirs</h2>
 <p class="lede">You will disagree with the provider. Reconciliation is the process that finds the disagreement on your schedule rather than on a customer's.</p>
 
 <div class="grid">
@@ -843,7 +873,7 @@ table.mini td:last-child { text-align: right; }
 </div>
 </div>
 
-<h2><span class="num">08</span>Traditional rails</h2>
+<h2><span class="num">07</span>Traditional rails</h2>
 <p class="lede">What the pipe promises determines what your software must compensate for. Speed, reversibility and finality differ per rail, and those three properties drive most of the design above.</p>
 
 <table>
@@ -868,7 +898,7 @@ table.mini td:last-child { text-align: right; }
 <li><b>BIN sponsorship and issuing as a service</b>: renting a licensed bank's card range so you can issue cards without being a bank. This is the product Immersve and similar companies sell.</li>
 </ul>
 
-<h2><span class="num">09</span>Crypto rails</h2>
+<h2><span class="num">08</span>Crypto rails</h2>
 <p class="lede">The same lifecycle with different failure modes. Finality replaces reversibility, and custody replaces the bank relationship.</p>
 
 <div class="grid">
@@ -904,7 +934,7 @@ table.mini td:last-child { text-align: right; }
 </div>
 </div>
 
-<h2><span class="num">10</span>The agentic layer</h2>
+<h2><span class="num">09</span>The agentic layer</h2>
 <p class="lede">Machine to machine payment on top of the rails above. An agent needs the same guarantees a human does, with no one watching the screen.</p>
 <ul>
 <li><b>x402</b>: HTTP 402 revived as a payment handshake. The server answers with what it costs and how to pay, the client pays, the request is retried with proof, and a facilitator verifies and settles. Buyers pay no gas when settlement uses EIP-3009.</li>
@@ -914,7 +944,7 @@ table.mini td:last-child { text-align: right; }
 </ul>
 <div class="note">This block is deliberately short because it is covered properly elsewhere: <a href="https://justaname-id.github.io/agentic-payments-cheatsheet/">the Agentic Payments Cheatsheet</a> walks the x402 flow, the roles, the headers, the schemes and the facilitator trust model in detail. This page is the layer underneath it.</div>
 
-<h2><span class="num">11</span>The invariants that hold it together</h2>
+<h2><span class="num">10</span>The invariants that hold it together</h2>
 <p class="lede">If the blocks above feel like a list, these are the rules that make them one system. Break one and the others stop composing.</p>
 
 <div class="invariant"><b>1. Every stage is idempotent, or it is not a stage.</b> Admission, intent, orchestration, rail, record and reconciliation can each be replayed. This is what lets you retry anything without arithmetic.</div>
@@ -925,7 +955,7 @@ table.mini td:last-child { text-align: right; }
 <div class="invariant"><b>6. Two clocks, always.</b> Event time and booking time are stored separately, because reporting, investigation and settlement each need a different one.</div>
 <div class="invariant"><b>7. Anything a human must resolve has a queue.</b> Compliance reviews, reconciliation breaks and disputes are work items with owners and ages, not notifications.</div>
 
-<h2><span class="num">12</span>Build order</h2>
+<h2><span class="num">11</span>Build order</h2>
 <p class="lede">If you are assembling this from nothing, this order keeps every step verifiable with the step before it.</p>
 <ol>
 <li><b>The ledger first</b>, with the debits equal credits property test. Nothing else has anywhere to write until this exists.</li>
@@ -938,7 +968,7 @@ table.mini td:last-child { text-align: right; }
 <li><b>The second rail</b>, which is the real test of whether the adapter boundary was drawn right.</li>
 </ol>
 
-<h2><span class="num">13</span>How to test it</h2>
+<h2><span class="num">12</span>How to test it</h2>
 <ul>
 <li><b>Property test the ledger invariant</b> over generated sequences of movements, including refunds, reversals and partial captures.</li>
 <li><b>Replay determinism</b>: the same event stream rebuilds the same balances, byte for byte, from zero.</li>
@@ -948,7 +978,7 @@ table.mini td:last-child { text-align: right; }
 <li><b>Clock tests</b>: value dates across a weekend, a month end and a daylight saving change.</li>
 </ul>
 
-<h2><span class="num">14</span>Two worlds, one lifecycle</h2>
+<h2><span class="num">13</span>Two worlds, one lifecycle</h2>
 <p class="lede">The spine is the same everywhere, but the vocabulary splits cleanly in two, and people who grew up on one side are often surprised by how little of the other they have ever needed.</p>
 
 <table>
