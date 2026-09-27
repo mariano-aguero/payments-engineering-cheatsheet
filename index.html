@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments Engineering Cheatsheet</title>
+    <meta name="description" content="How money actually moves through software: the lifecycle of a payment, the patterns that keep it correct, and the compliance and rail vocabulary that surrounds it.">
+    <meta name="keywords" content="payments, idempotency, saga, outbox, double-entry ledger, reconciliation, KYC, KYB, AML, ISO 20022, stablecoin, fintech">
+    <meta name="author" content="Payments Engineering Cheatsheet">
+
+    <link rel="canonical" href="https://mariano-aguero.github.io/payments-engineering-cheatsheet/">
+
+    <meta name="theme-color" content="#2dd4a7">
+
+    <meta property="og:title" content="Payments Engineering Cheatsheet">
+    <meta property="og:description" content="One payment, end to end: who may move money, how it stays correct across systems, where it gets recorded, and how you prove it later.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mariano-aguero.github.io/payments-engineering-cheatsheet/">
+    <meta property="og:site_name" content="Payments Engineering Cheatsheet">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Payments Engineering Cheatsheet">
+    <meta name="twitter:description" content="The lifecycle of a payment and the patterns that hold it together, from KYB to double-entry to reorgs.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1a2332;
+            --bg-code: #0d1117;
+            --accent-primary: #2dd4a7;
+            --accent-secondary: #f0b429;
+            --accent-warning: #ff6b35;
+            --accent-danger: #ff3860;
+            --accent-purple: #a855f7;
+            --text-primary: #e4e8ef;
+            --text-secondary: #8b949e;
+            --text-muted: #5c6370;
+            --border-color: #21293a;
+            --border-glow: rgba(45, 212, 167, 0.3);
+            --gradient-main: linear-gradient(135deg, #2dd4a7 0%, #f0b429 100%);
+            --shadow-glow: 0 0 40px rgba(45, 212, 167, 0.15);
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Outfit', -apple-system, sans-serif;
+            line-height: 1.65;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 96px; }
+
+        header {
+            padding: 72px 0 40px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 48px;
+        }
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.1rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 14px;
+        }
+        header p { color: var(--text-secondary); font-size: 1.1rem; max-width: 70ch; }
+        header p + p { margin-top: 14px; }
+
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin: 56px 0 6px;
+            letter-spacing: -0.01em;
+        }
+        h2 .num {
+            font-family: var(--font-mono);
+            font-size: .95rem;
+            color: var(--accent-primary);
+            margin-right: 12px;
+            font-weight: 500;
+        }
+        .lede { color: var(--text-secondary); margin-bottom: 24px; max-width: 78ch; }
+
+        h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin: 28px 0 10px;
+            color: var(--accent-secondary);
+        }
+
+        p { max-width: 82ch; margin-bottom: 12px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 24px;
+            font-size: .94rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+        th {
+            color: var(--accent-primary);
+            font-weight: 600;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        td:first-child { font-family: var(--font-mono); font-size: .88rem; white-space: nowrap; color: var(--text-primary); }
+        tbody tr:hover { background: rgba(255,255,255,.02); }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 18px 22px;
+            margin: 14px 0;
+        }
+        .card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-family: var(--font-mono);
+        }
+        .card p { font-size: .95rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .card p:last-child { margin-bottom: 0; }
+        .card .fail { color: var(--accent-warning); }
+        .card .fail b { color: var(--accent-warning); font-weight: 600; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; margin: 16px 0; }
+
+        ul, ol { margin: 0 0 16px 22px; color: var(--text-secondary); }
+        li { margin-bottom: 7px; max-width: 80ch; }
+        li b, p b { color: var(--text-primary); font-weight: 600; }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: .87em;
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1px 6px;
+            color: var(--accent-primary);
+        }
+
+        .spine {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 22px 26px;
+            margin: 24px 0 8px;
+            font-family: var(--font-mono);
+            font-size: .9rem;
+            overflow-x: auto;
+        }
+        .spine ol { list-style: none; margin: 0; }
+        .spine li { margin-bottom: 10px; color: var(--text-primary); }
+        .spine li:last-child { margin-bottom: 0; }
+        .spine .stage { color: var(--accent-primary); }
+        .spine .q { color: var(--text-secondary); }
+
+        .invariant {
+            border-left: 3px solid var(--accent-secondary);
+            background: var(--bg-tertiary);
+            padding: 14px 20px;
+            margin: 12px 0;
+            border-radius: 6px;
+        }
+        .invariant b { color: var(--accent-secondary); }
+
+        .note {
+            border-left: 3px solid var(--accent-purple);
+            background: var(--bg-secondary);
+            padding: 14px 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            color: var(--text-secondary);
+            font-size: .95rem;
+        }
+
+        a { color: var(--accent-primary); }
+
+        footer {
+            margin-top: 72px;
+            padding-top: 28px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: .9rem;
+        }
+
+        @media (max-width: 640px) {
+            .wrap { padding: 0 16px 64px; }
+            header { padding: 48px 0 32px; }
+            td:first-child { white-space: normal; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+    <h1>Payments Engineering Cheatsheet</h1>
+    <p>How money actually moves through software. Not a glossary: the stages one payment goes through, the pattern each stage needs, and the vocabulary that surrounds each one.</p>
+    <p>Read it top to bottom once and you have the shape of a payment system. Come back to a single block when you are building that part.</p>
+</header>
+
+<h2><span class="num">00</span>The spine</h2>
+<p class="lede">Every block below hangs off one of these stages. A payment system is not a set of features, it is this sequence made durable.</p>
+
+<div class="spine">
+<ol>
+<li><span class="stage">1 · Admission</span> <span class="q">may this party move money at all?</span></li>
+<li><span class="stage">2 · Intent</span> <span class="q">what exactly is being asked, once?</span></li>
+<li><span class="stage">3 · Orchestration</span> <span class="q">who has to agree, and what if one refuses halfway?</span></li>
+<li><span class="stage">4 · Rail</span> <span class="q">which pipe carries it, and what does that pipe promise?</span></li>
+<li><span class="stage">5 · Record</span> <span class="q">where is the truth written, in a form that cannot drift?</span></li>
+<li><span class="stage">6 · Reconcile</span> <span class="q">does our truth match theirs, and who looks at the gaps?</span></li>
+<li><span class="stage">7 · Monitor</span> <span class="q">what changed after the money left?</span></li>
+</ol>
+</div>
+<p style="color:var(--text-muted);font-size:.9rem">Stages 1 and 7 are the same discipline at different times. Stage 5 is the only one that must never lose data.</p>
+
+<h2><span class="num">01</span>Admission: who may move money</h2>
+<p class="lede">Compliance is not a checkbox before the feature. It is a stage with its own state, its own queue and its own audit trail, and it produces events the rest of the system reads.</p>
+
+<table>
+<thead><tr><th>term</th><th>what it is</th><th>when it runs</th></tr></thead>
+<tbody>
+<tr><td>KYC</td><td>verify a person: identity document, liveness, address</td><td>onboarding, then on triggers</td></tr>
+<tr><td>KYB</td><td>verify a company: incorporation, UBO (ultimate beneficial owners), directors, registry standing</td><td>onboarding of a business account</td></tr>
+<tr><td>AML</td><td>anti money laundering, the umbrella programme the others live inside</td><td>always, as policy</td></tr>
+<tr><td>KYT</td><td>know your transaction: risk scoring of an on-chain counterparty or flow</td><td>per transaction, before release</td></tr>
+<tr><td>Travel Rule</td><td>FATF Recommendation 16: originator and beneficiary data travels with transfers above a threshold between VASPs</td><td>per transfer, crypto</td></tr>
+<tr><td>sanctions / OFAC</td><td>screening names, addresses and wallets against lists</td><td>onboarding and per payment, plus rescreening when a list changes</td></tr>
+<tr><td>PEP</td><td>politically exposed person: higher scrutiny, not a block</td><td>onboarding and periodic review</td></tr>
+<tr><td>SoF / SoW</td><td>source of funds and source of wealth, evidence for large or unusual activity</td><td>on threshold or trigger</td></tr>
+</tbody>
+</table>
+
+<h3>Patterns this stage needs</h3>
+<div class="grid">
+<div class="card">
+<h4>Synchronous block, asynchronous review</h4>
+<p>A hard hit on a sanctions list blocks inline. Everything fuzzy goes to a queue with a human on it. Deciding which is which per check is the design, and getting it wrong either freezes good customers or lets bad ones through.</p>
+<p class="fail"><b>Fails as:</b> the whole flow is synchronous, the vendor is slow, and onboarding times out on a maybe.</p>
+</div>
+<div class="card">
+<h4>Case management queue</h4>
+<p>Anything a human must review needs a queue with ownership, SLA and an outcome, not an alert in a channel. The queue is a first class part of the product.</p>
+<p class="fail"><b>Fails as:</b> reviews live in someone's inbox and nobody can answer how many are pending.</p>
+</div>
+<div class="card">
+<h4>Decisions as events, never as flags</h4>
+<p>Store <code>verification.approved</code> with who, when, which vendor and which evidence. A boolean column tells you the state today and nothing about how you got here, which is exactly what an auditor asks for.</p>
+<p class="fail"><b>Fails as:</b> a regulator asks why this account was approved in March and the answer is a <code>true</code>.</p>
+</div>
+<div class="card">
+<h4>Rescreening on list change</h4>
+<p>Screening is not a one-off at onboarding. Lists change, and the obligation is to re-run the existing book against the new list, which means yesterday's approved customer can become today's case.</p>
+<p class="fail"><b>Fails as:</b> screening only exists in the signup path and nothing re-checks the back book.</p>
+</div>
+</div>
+
+<div class="invariant"><b>Connects to:</b> a refused payment is still a recorded event (stage 5), the refusal reason is a terminal state in the payment state machine (stage 2), and the vendor performing the check is behind an anti-corruption layer like any other third party (stage 3).</div>
+
+<h2><span class="num">02</span>Intent: capture the request exactly once</h2>
+<p class="lede">The client will retry. The network will duplicate. The user will double click. This stage exists so that all of that produces one payment.</p>
+
+<div class="grid">
+<div class="card">
+<h4>Idempotency keys</h4>
+<p>The caller supplies a key, the server stores key plus the response, and a repeat with the same key returns the stored response instead of doing the work again. Key scope is per endpoint and per account, and the record outlives the retry window.</p>
+<p class="fail"><b>Fails as:</b> the key is stored after the side effect instead of before, so a crash between the two still double charges.</p>
+</div>
+<div class="card">
+<h4>At-least-once plus an idempotent consumer</h4>
+<p>Exactly-once delivery does not exist across a network boundary. What exists is at-least-once delivery and a consumer that can absorb repeats, usually through a stable event id and a dedup table.</p>
+<p class="fail"><b>Fails as:</b> a design that assumes exactly-once and therefore never writes the dedup path.</p>
+</div>
+<div class="card">
+<h4>Explicit state machine</h4>
+<p>One enum per payment with the legal transitions written down and terminal states that never move again. Every stage below advances it. Nothing writes state by assignment.</p>
+<p class="fail"><b>Fails as:</b> status is a string set in fifteen places and <code>pending</code> means four different things.</p>
+</div>
+<div class="card">
+<h4>Authorize, capture, settle</h4>
+<p>Three separate moments: the money is promised, the money is claimed, the money actually arrives. Cards make this explicit, and most systems need the distinction even when the rail hides it. Holds expire, and the expiry is your job.</p>
+<p class="fail"><b>Fails as:</b> treating authorization as money in hand, and discovering the difference during a dispute.</p>
+</div>
+<div class="card">
+<h4>Money as an integer, with a currency</h4>
+<p>Minor units in a 64 bit integer or a decimal type, never a float, and the currency travels with the amount as one value. Rounding rules are decided once, at a named boundary.</p>
+<p class="fail"><b>Fails as:</b> a float somewhere in the chain and a one cent drift nobody can reproduce.</p>
+</div>
+<div class="card">
+<h4>Limits and velocity checks</h4>
+<p>Per account, per counterparty, per window. They belong before the rail is touched, evaluated against the ledger and not against a cache, because the check is only as good as the balance it reads.</p>
+<p class="fail"><b>Fails as:</b> the limit is checked against a stale read and two concurrent requests both pass.</p>
+</div>
+</div>
+
+<div class="invariant"><b>Connects to:</b> the idempotency key is the correlation id the ledger (stage 5) and the reconciliation (stage 6) both use to tie your record to the provider's record.</div>
+
+<h2><span class="num">03</span>Orchestration: several systems, one outcome</h2>
+<p class="lede">A payment touches your ledger, a compliance vendor, a provider and a notification. They fail independently. This stage is about what a half finished payment looks like.</p>
+
+<div class="grid">
+<div class="card">
+<h4>Saga with compensations</h4>
+<p>A sequence of local transactions, each with an explicit compensating action for the case where a later step fails. Orchestrated, where one coordinator owns the sequence, is easier to reason about and to debug than choreographed, where each service reacts to events.</p>
+<p class="fail"><b>Fails as:</b> compensations are written for the happy rollback only, and nobody tested the compensation of a compensation.</p>
+</div>
+<div class="card">
+<h4>Why not two phase commit</h4>
+<p>2PC needs every participant to hold locks and to obey a coordinator, which a card network or a bank will never do. Payments buy the same guarantee with business primitives instead: a hold, an expiry and a reversal.</p>
+<p class="fail"><b>Fails as:</b> reaching for a distributed transaction where the outside world has no prepare phase.</p>
+</div>
+<div class="card">
+<h4>Transactional outbox</h4>
+<p>Write the state change and the event to publish in the same database transaction, then a relay reads the outbox and publishes. This is what makes "we saved it but the event never fired" impossible.</p>
+<p class="fail"><b>Fails as:</b> publishing inside the transaction, or after commit, which drops events on crash.</p>
+</div>
+<div class="card">
+<h4>Inbox and dedup table</h4>
+<p>The mirror of the outbox on the receiving side. Record the event id before processing, reject the repeat. Cheap, and it is the entire implementation of "idempotent consumer".</p>
+<p class="fail"><b>Fails as:</b> dedup by payload hash, which breaks the moment the producer adds a timestamp.</p>
+</div>
+<div class="card">
+<h4>Deadline propagation</h4>
+<p>One budget for the whole request, passed down and decremented, so an inner call cannot spend thirty seconds when the caller has two left. Without it, timeouts are a set of unrelated numbers that add up to an outage.</p>
+<p class="fail"><b>Fails as:</b> every service has its own 30s timeout and the user waits three minutes.</p>
+</div>
+<div class="card">
+<h4>Ordering per account</h4>
+<p>Global ordering is unnecessary and expensive. Ordering per account is required. Partition by account id, use a monotonic sequence per stream, and make consumers tolerate gaps rather than assume them impossible.</p>
+<p class="fail"><b>Fails as:</b> parallel consumers on one account applying a credit and a debit out of order.</p>
+</div>
+</div>
+
+<h2><span class="num">04</span>Third parties you cannot trust</h2>
+<p class="lede">Every provider has a bad day. The engineering question is never whether, it is what your system does that day. This block is where most of the operational scar tissue in a payment system lives.</p>
+
+<div class="grid">
+<div class="card">
+<h4>Anti-corruption layer per vendor</h4>
+<p>Your domain model never speaks the provider's dialect. One adapter per vendor behind one internal interface, so swapping a KYC provider or adding a second acquirer is a new adapter and not a migration.</p>
+<p class="fail"><b>Fails as:</b> the provider's field names leak into your database and your API, and now they are permanent.</p>
+</div>
+<div class="card">
+<h4>Fail closed or fail open, decided per operation</h4>
+<p>If sanctions screening is down, you stop: fail closed. If the receipt email provider is down, you continue: fail open. The decision is written next to the call, not left to whatever the timeout happens to do.</p>
+<p class="fail"><b>Fails as:</b> an unhandled exception decides your compliance posture.</p>
+</div>
+<div class="card">
+<h4>Circuit breaker and bulkhead</h4>
+<p>The breaker stops hammering a provider that is already down and gives it room to recover. The bulkhead keeps that provider's thread or connection pool separate, so one slow vendor cannot consume the capacity the rest of the system needs.</p>
+<p class="fail"><b>Fails as:</b> one degraded vendor saturates the shared pool and takes down unrelated flows.</p>
+</div>
+<div class="card">
+<h4>Retry with backoff and jitter</h4>
+<p>Exponential backoff with randomness, a cap on attempts, and retries only on errors that can succeed later. A retry without an idempotency key is a second payment.</p>
+<p class="fail"><b>Fails as:</b> synchronized retries from every instance hitting the provider at the same second.</p>
+</div>
+<div class="card">
+<h4>Poison messages and the dead letter queue</h4>
+<p>A message that fails deterministically must leave the queue after N attempts, with its reason, or it blocks the partition forever. The DLQ needs an owner and a drain procedure, otherwise it is a landfill.</p>
+<p class="fail"><b>Fails as:</b> infinite redelivery of one bad event, silently stalling everything behind it.</p>
+</div>
+<div class="card">
+<h4>Webhook receipt contract</h4>
+<p>Verify the signature, reject outside the replay window, acknowledge fast, do the work asynchronously, and make the handler idempotent because the sender will deliver twice. Never trust the payload as the source of truth: use it as a signal and read back from the provider.</p>
+<p class="fail"><b>Fails as:</b> a long synchronous handler that the provider times out and then retries, doubling the work.</p>
+</div>
+</div>
+
+<h2><span class="num">05</span>Record: the ledger is the truth</h2>
+<p class="lede">Every other store in the system is a cache of this one. If a number can be recomputed from the ledger it is a projection, and projections may be rebuilt at any time.</p>
+
+<div class="grid">
+<div class="card">
+<h4>Double-entry ledger</h4>
+<p>Every movement writes at least two entries that sum to zero: something is debited, something is credited. Accounts for the user, for your float, for fees, for the provider. The invariant is not a style choice, it is what makes an error visible instead of silent.</p>
+<p class="fail"><b>Fails as:</b> a <code>balance</code> column updated in place, which cannot answer why it changed.</p>
+</div>
+<div class="card">
+<h4>Append only, balances as projection</h4>
+<p>Entries are never updated or deleted. A correction is a new pair of entries. The balance is the sum, materialized for speed and rebuildable from zero.</p>
+<p class="fail"><b>Fails as:</b> fixing a bad entry with an UPDATE, which destroys the only evidence of the bug.</p>
+</div>
+<div class="card">
+<h4>Refunds and reversals are new entries</h4>
+<p>A refund is a fresh movement in the opposite direction, linked to the original. It is not the original undone. Partial captures and partial refunds follow the same rule, which keeps the history additive.</p>
+<p class="fail"><b>Fails as:</b> a reversal that mutates the original and makes the two sides of a dispute impossible to reconstruct.</p>
+</div>
+<div class="card">
+<h4>Two clocks</h4>
+<p>When it happened and when it books are different dates, and settlement runs on T+N. Report on booking date, investigate on event date, and store both, because a late arriving entry must land in the right accounting period.</p>
+<p class="fail"><b>Fails as:</b> one timestamp, and a month end that never closes.</p>
+</div>
+<div class="card">
+<h4>Event sourcing and CQRS, if you need them</h4>
+<p>The ledger already is an event log. Full event sourcing buys replay of arbitrary state and costs schema evolution pain forever. Take it when the audit requirement is real, not because it sounds correct.</p>
+<p class="fail"><b>Fails as:</b> event sourcing every entity in the system, including the ones nobody audits.</p>
+</div>
+<div class="card">
+<h4>Audit trail that holds up</h4>
+<p>Who, what, when, from where, against which version of the policy, chained so a gap is detectable. This is the artifact a regulator reads, and it is written continuously, not assembled the week of the audit.</p>
+<p class="fail"><b>Fails as:</b> application logs with a 30 day retention as the audit story.</p>
+</div>
+</div>
+
+<div class="invariant"><b>The invariant to test first:</b> the sum of all debits equals the sum of all credits, at every point in time, for every currency. It is one property test and it catches an enormous class of bugs before they reach money.</div>
+
+<h2><span class="num">06</span>Reconcile: our truth against theirs</h2>
+<p class="lede">You will disagree with the provider. Reconciliation is the process that finds the disagreement on your schedule rather than on a customer's.</p>
+
+<div class="grid">
+<div class="card">
+<h4>Three way reconciliation</h4>
+<p>Your ledger against the provider's report against the bank statement. Two of the three agreeing is the normal case and tells you which one drifted. Match on your correlation id, never on amount plus date.</p>
+<p class="fail"><b>Fails as:</b> matching by amount, which pairs two identical payments from different customers.</p>
+</div>
+<div class="card">
+<h4>Exception queue, not an alert</h4>
+<p>Unmatched items land in a queue with an owner, an age and a resolution. The health metric of a payment system is the size and age of that queue, and it is the first number an operator should see.</p>
+<p class="fail"><b>Fails as:</b> mismatches emailed to a distribution list and rediscovered at quarter end.</p>
+</div>
+<div class="card">
+<h4>Settlement files and windows</h4>
+<p>Rails report in batches with cut off times and value dates. Your system needs to ingest a file, be idempotent about re-ingesting it, and understand that the money arrives on a different day than the transaction.</p>
+<p class="fail"><b>Fails as:</b> re-processing yesterday's file and double booking the whole batch.</p>
+</div>
+<div class="card">
+<h4>Chargebacks and disputes</h4>
+<p>A card payment can be reversed months later by someone who is not your customer. The dispute has its own state machine, its own deadlines and its own evidence bundle, and it writes to the ledger like any other movement.</p>
+<p class="fail"><b>Fails as:</b> modelling a dispute as a refund and losing both the deadline and the evidence.</p>
+</div>
+</div>
+
+<h2><span class="num">07</span>Traditional rails</h2>
+<p class="lede">What the pipe promises determines what your software must compensate for. Speed, reversibility and finality differ per rail, and those three properties drive most of the design above.</p>
+
+<table>
+<thead><tr><th>rail</th><th>where</th><th>shape</th></tr></thead>
+<tbody>
+<tr><td>ACH</td><td>US</td><td>batch, slow, reversible for a window</td></tr>
+<tr><td>Wire / Fedwire</td><td>US</td><td>same day, final, expensive</td></tr>
+<tr><td>SEPA / SCT Inst</td><td>EU</td><td>credit transfer, the instant variant settles in seconds</td></tr>
+<tr><td>Faster Payments</td><td>UK</td><td>near instant, irrevocable</td></tr>
+<tr><td>SPEI</td><td>Mexico</td><td>near instant</td></tr>
+<tr><td>PIX</td><td>Brazil</td><td>instant, 24/7, QR and alias based</td></tr>
+<tr><td>Card schemes</td><td>global</td><td>authorize now, settle later, reversible for months</td></tr>
+</tbody>
+</table>
+
+<h3>Vocabulary that comes with them</h3>
+<ul>
+<li><b>ISO 20022</b>: the XML message standard that replaced SWIFT MT for cross border and high value payments. Working with it means message mapping and, usually, a migration off the older format.</li>
+<li><b>3-D Secure and SCA</b>: the cardholder challenge, mandated in Europe by PSD2 as strong customer authentication. It moves liability for fraud and it costs conversion, which is the trade the product team argues about.</li>
+<li><b>PCI DSS</b>: the standard that applies the moment raw card data touches your systems. The whole industry is built around never touching it, through tokenization and hosted fields, because the scope reduction is worth more than the control.</li>
+<li><b>Issuer, acquirer, scheme, processor</b>: the issuer holds the cardholder, the acquirer holds the merchant, the scheme is the network between them, the processor runs the software for either side.</li>
+<li><b>BIN sponsorship and issuing as a service</b>: renting a licensed bank's card range so you can issue cards without being a bank. This is the product Immersve and similar companies sell.</li>
+</ul>
+
+<h2><span class="num">08</span>Crypto rails</h2>
+<p class="lede">The same lifecycle with different failure modes. Finality replaces reversibility, and custody replaces the bank relationship.</p>
+
+<div class="grid">
+<div class="card">
+<h4>Confirmation depth and reorgs</h4>
+<p>A transaction in a block is not final. Each chain has its own reorg risk and its own finality guarantee, and your confirmation policy is a per chain, per amount decision. Crediting at one confirmation is a business choice with a loss rate.</p>
+<p class="fail"><b>Fails as:</b> crediting on first sight, then the chain reorgs and the balance is real but the deposit is not.</p>
+</div>
+<div class="card">
+<h4>Nonce management and stuck transactions</h4>
+<p>Sequential nonces per sending address mean one stuck transaction blocks every later one. You need replacement with a higher fee, a single writer per address, and a watcher that notices a transaction that never mined.</p>
+<p class="fail"><b>Fails as:</b> two processes sending from the same hot wallet and colliding on nonces under load.</p>
+</div>
+<div class="card">
+<h4>Gas abstraction</h4>
+<p>The user should not need the chain's native token to move their own stablecoins. EIP-3009 lets a third party submit a signed transfer and pay the gas; ERC-4337 paymasters do the same for smart accounts. Whoever pays gas becomes a balance you must fund and monitor.</p>
+<p class="fail"><b>Fails as:</b> the relayer runs out of gas on a weekend and every withdrawal silently queues.</p>
+</div>
+<div class="card">
+<h4>Custody tiers</h4>
+<p>Hot for automated flow, warm for operational reserves, cold for the rest, with limits at each boundary and dual control on promotion. MPC or multisig removes the single key, and the approval policy is where the real security lives.</p>
+<p class="fail"><b>Fails as:</b> one hot wallet holding the float because tiering was left for later.</p>
+</div>
+<div class="card">
+<h4>Allowlists and transfer hooks</h4>
+<p>Permissioned tokens enforce policy at the token level: allowlisted transfers, accounts frozen by default, a permanent delegate for clawback. Solana Token-2022 transfer hooks and ERC-1400 style restrictions are the same idea in two ecosystems.</p>
+<p class="fail"><b>Fails as:</b> enforcing the policy only in the app, while the token itself lets anyone transfer.</p>
+</div>
+<div class="card">
+<h4>On-ramp and off-ramp</h4>
+<p>The seam between the two worlds and the place where both compliance regimes apply at once. It is also where every abandoned order lives, which is why reconciliation of incomplete orders is a named job and not an afterthought.</p>
+<p class="fail"><b>Fails as:</b> treating the provider's webhook as the only signal, and losing every order where it never arrived.</p>
+</div>
+</div>
+
+<h2><span class="num">09</span>The agentic layer</h2>
+<p class="lede">Machine to machine payment on top of the rails above. An agent needs the same guarantees a human does, with no one watching the screen.</p>
+<ul>
+<li><b>x402</b>: HTTP 402 revived as a payment handshake. The server answers with what it costs and how to pay, the client pays, the request is retried with proof, and a facilitator verifies and settles. Buyers pay no gas when settlement uses EIP-3009.</li>
+<li><b>AP2</b>: a mandate layer above the payment, where the human's authorization to an agent is itself a signed, bounded artifact.</li>
+<li><b>ACP</b>: the commerce side of the same problem, agents buying inside a merchant's catalogue.</li>
+<li><b>Budget, allowlist and per transaction limits enforced on chain</b> rather than in the agent's prompt, because the prompt is not a security boundary.</li>
+</ul>
+<div class="note">This block is deliberately short because it is covered properly elsewhere: <a href="https://justaname-id.github.io/agentic-payments-cheatsheet/">the Agentic Payments Cheatsheet</a> walks the x402 flow, the roles, the headers, the schemes and the facilitator trust model in detail. This page is the layer underneath it.</div>
+
+<h2><span class="num">10</span>The invariants that hold it together</h2>
+<p class="lede">If the blocks above feel like a list, these are the rules that make them one system. Break one and the others stop composing.</p>
+
+<div class="invariant"><b>1. Every stage is idempotent, or it is not a stage.</b> Admission, intent, orchestration, rail, record and reconciliation can each be replayed. This is what lets you retry anything without arithmetic.</div>
+<div class="invariant"><b>2. The ledger is the only truth.</b> Every other store is a projection and may be rebuilt. When two components disagree, the ledger wins by definition rather than by investigation.</div>
+<div class="invariant"><b>3. Every external call has a declared failure policy.</b> Fail closed or fail open, written at the call site, decided per operation. Nothing about your posture is left to a default timeout.</div>
+<div class="invariant"><b>4. Decisions are events, not flags.</b> Compliance outcomes, state transitions and manual overrides are all appended with their evidence. A boolean is a summary, and summaries cannot be audited.</div>
+<div class="invariant"><b>5. Money is an integer in minor units, carrying its currency.</b> No floats, no bare numbers crossing a boundary, rounding decided once at a named place.</div>
+<div class="invariant"><b>6. Two clocks, always.</b> Event time and booking time are stored separately, because reporting, investigation and settlement each need a different one.</div>
+<div class="invariant"><b>7. Anything a human must resolve has a queue.</b> Compliance reviews, reconciliation breaks and disputes are work items with owners and ages, not notifications.</div>
+
+<h2><span class="num">11</span>Build order</h2>
+<p class="lede">If you are assembling this from nothing, this order keeps every step verifiable with the step before it.</p>
+<ol>
+<li><b>The ledger first</b>, with the debits equal credits property test. Nothing else has anywhere to write until this exists.</li>
+<li><b>The payment state machine</b>, with terminal states and the transitions written down.</li>
+<li><b>Idempotency at the entry point</b>, key stored before the side effect.</li>
+<li><b>One rail, behind an adapter</b>, with its failure policy declared. One is enough to prove the seam.</li>
+<li><b>The outbox</b>, so events and state cannot diverge, and the inbox on whatever consumes them.</li>
+<li><b>Reconciliation against that rail</b>, plus the exception queue, before adding a second rail. Reconciliation is what tells you the first one is actually correct.</li>
+<li><b>Admission checks</b>, wired as a stage with its own states, not as a call inside signup.</li>
+<li><b>The second rail</b>, which is the real test of whether the adapter boundary was drawn right.</li>
+</ol>
+
+<h2><span class="num">12</span>How to test it</h2>
+<ul>
+<li><b>Property test the ledger invariant</b> over generated sequences of movements, including refunds, reversals and partial captures.</li>
+<li><b>Replay determinism</b>: the same event stream rebuilds the same balances, byte for byte, from zero.</li>
+<li><b>Duplicate everything</b>: the test suite should deliver every webhook twice and every message three times as a matter of course.</li>
+<li><b>Kill the vendor</b>: a provider that times out, one that returns 500, one that returns a success for a payment that never happened. The third is the one that finds real bugs.</li>
+<li><b>Golden files for reconciliation</b>: a known settlement file with known breaks, so the matcher's behaviour is pinned.</li>
+<li><b>Clock tests</b>: value dates across a weekend, a month end and a daylight saving change.</li>
+</ul>
+
+<h2><span class="num">13</span>Two worlds, one lifecycle</h2>
+<p class="lede">The spine is the same everywhere, but the vocabulary splits cleanly in two, and people who grew up on one side are often surprised by how little of the other they have ever needed.</p>
+
+<table>
+<thead><tr><th>side</th><th>what dominates the vocabulary</th><th>what you rarely meet</th></tr></thead>
+<tbody>
+<tr><td>bank and card</td><td>ISO 20022, PCI DSS, 3-D Secure and SCA, chargebacks, issuing and acquiring, AML programmes, sanctions and Travel Rule obligations</td><td>reorgs, nonces, gas, custody tiers</td></tr>
+<tr><td>crypto-native</td><td>stablecoin rails, on and off ramps, confirmation depth, wallets and custody, KYC at the edges, KYT on the flow</td><td>the card and banking compliance stack above, almost entirely</td></tr>
+</tbody>
+</table>
+
+<p>Both sides still need stages 2 through 6 unchanged: one intent, a saga that can compensate, a ledger that balances, a reconciliation that finds the break. That is the part worth learning once, because it is the part that transfers.</p>
+
+
+<footer>
+<p>Maintained by <a href="https://github.com/mariano-aguero/payments-engineering-cheatsheet">mariano-aguero/payments-engineering-cheatsheet</a>. Corrections and additions via pull request are welcome.</p>
+<p>Companion page: <a href="https://justaname-id.github.io/agentic-payments-cheatsheet/">Agentic Payments Cheatsheet</a>, for the x402 and AP2 layer above this one.</p>
+</footer>
+
+</div>
+</body>
+</html>
