@@ -238,6 +238,8 @@
 <div class="sim" id="sim">
   <div class="sim-bar">
     <button class="btn ok" data-load="success">A payment that works</button>
+    <button class="btn bad" data-load="sanctions">Sanctions hit</button>
+    <button class="btn bad" data-load="declined">The provider declines</button>
     <button class="btn bad" data-load="failure">The provider times out</button>
     <span class="state" id="simState">idle</span>
   </div>
@@ -377,7 +379,9 @@ table.mini td:last-child { text-align: right; }
   // module, text, payment state, kind, optional ledger entry, moving backwards
   const REQUEST = {
     success: { idempotency_key: 'a1f3c2', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7781' },
-    failure: { idempotency_key: 'b7e9d1', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7782' }
+    failure: { idempotency_key: 'b7e9d1', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_0041', reference: 'inv-7782' },
+    sanctions: { idempotency_key: 'c4d8e2', amount: '25000', currency: 'USD', debtor: 'acct_9f2b', creditor: 'mrc_5518', reference: 'inv-7783' },
+    declined: { idempotency_key: 'd1a05f', amount: '25000', currency: 'USD', debtor: 'acct_3e71', creditor: 'mrc_0041', reference: 'inv-7784' }
   };
 
   // module, text, payment state, kind, ledger entry, backwards, fields this stage adds
@@ -406,6 +410,23 @@ table.mini td:last-child { text-align: right; }
       [7, 'break opened, and the hold stays: the money is not free to spend yet', 'in review', 'note', null, true, { break_id: 'brk_204', assigned_to: 'ops' }],
       [7, 'next settlement file shows nothing settled. Now we know which side we are on', 'in review', 'ok', null, false, { matched_in: 'stl_20260928', settled: 'false' }],
       [3, 'only now step 1 is compensated, with a new entry and never an edit', 'failed', 'ok', ['clearing', 'user', '250.00'], true, { ledger_entries: '2', hold_id: 'released', break_id: 'closed' }]
+    ],
+    sanctions: [
+      [0, 'key <b>c4d8e2</b> seen for the first time, request accepted', 'received', 'ok', null, false, { payment_id: 'pay_58f1', received_at: '09:14:55.230Z' }],
+      [1, 'hard match on the creditor against the sanctions list, blocked inline', 'blocked', 'err', null, false, { screening: 'hit', matched_list: 'ofac_sdn', risk_band: 'blocked' }],
+      [1, 'the decision is stored with the list, its version and the time, not as a boolean', 'rejected', 'note', null, false, { decision_id: 'dec_7742', list_version: '2026-09-26' }],
+      [3, 'the ledger stays empty. Nothing moved, and that is the correct record', 'rejected', 'ok', null, false, { ledger_entries: '0' }]
+    ],
+    declined: [
+      [0, 'key <b>d1a05f</b> seen for the first time, request accepted', 'received', 'ok', null, false, { payment_id: 'pay_6620', received_at: '11:31:08.904Z' }],
+      [1, 'sanctions clear, KYC valid, no review needed', 'admitted', 'ok', null, false, { screening: 'clear', risk_band: 'low' }],
+      [2, 'saga started, three steps, compensations armed before anything risky runs', 'admitted', 'ok', null, false, { saga_id: 'sg_1319', compensations: 'armed' }],
+      [3, 'step 1, reserve: hold placed, user debited against clearing', 'authorized', 'ok', ['user', 'clearing', '250.00'], false, { hold_id: 'hld_2b4', ledger_entries: '1' }],
+      [4, 'event written in the same transaction, published once', 'authorized', 'ok', null, false, { event_id: 'evt_5719' }],
+      [5, 'step 2, submit: sent to the provider, deadline 8s', 'submitted', 'ok', null, false, { provider: 'psp_north', deadline_ms: '8000', attempt: '1' }],
+      [6, 'declined, insufficient funds, reference <b>PSP-9110</b>', 'declined', 'err', null, false, { provider_ref: 'PSP-9110', outcome: 'declined', decline_code: 'insufficient_funds' }],
+      [2, 'the answer is known, so the compensation runs now. No break, no waiting', 'compensating', 'warn', null, true, { compensations: 'running' }],
+      [3, 'hold released with a new entry. A known no is cheaper than an unknown maybe', 'failed', 'ok', ['clearing', 'user', '250.00'], true, { ledger_entries: '2', hold_id: 'released' }]
     ]
   };
 
@@ -490,6 +511,8 @@ table.mini td:last-child { text-align: right; }
       if (state === 'in review') queue = 1;
       if (state === 'failed' || state === 'settled') queue = 0;
     });
+
+    if (!ledgerEl.children.length) ledgerEl.innerHTML = '<tr class="muted"><td colspan="3">Empty: no money moved.</td></tr>';
 
     if (i < 0) {
       token.className = 'token';

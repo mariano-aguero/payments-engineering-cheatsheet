@@ -21,7 +21,7 @@ Not a glossary. The page is built around one spine, the lifecycle of a payment, 
 
 ## What's inside
 
-- **An interactive walkthrough** at the top: step one payment through all eight modules with Back and Forward, or press Play. Two scenarios, one that settles and one where the provider times out, with the event log, the payment object, the ledger and the exception queue rebuilding at every step
+- **An interactive walkthrough** at the top: step one payment through all eight modules with Back and Forward, or press Play. Four scenarios, from a payment that settles to a sanctions hit, a clean decline and a provider timeout, with the event log, the payment object, the ledger and the exception queue rebuilding at every step
 - **A field glossary** for every property that payment object carries, what writes it and why it exists
 
 - **Admission**: KYC, KYB, AML, KYT, Travel Rule, sanctions and PEP, with the patterns that turn them into a stage instead of a checkbox
