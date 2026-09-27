@@ -299,12 +299,12 @@
 .sim .state, .sim .counter { font-family: var(--font-mono); font-size: .8rem; color: var(--text-secondary); margin-left: auto; text-transform: uppercase; letter-spacing: .06em; }
 
 .track { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; padding: 34px 0 10px; margin-top: 18px; }
-.mod { position: relative; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s, transform .2s; }
+.mod { position: relative; z-index: 2; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s, transform .2s; }
 .mod:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
 .saga { position: absolute; border: 1px dashed var(--accent-purple); border-radius: 10px; background: rgba(168,85,247,.06); cursor: pointer; z-index: 1; }
 .saga span { position: absolute; top: -9px; left: 12px; background: var(--bg-secondary); padding: 0 7px; font-family: var(--font-mono); font-size: .64rem; color: var(--accent-purple); letter-spacing: .05em; }
 .saga:hover { background: rgba(168,85,247,.12); }
-.tip { position: absolute; z-index: 5; width: 290px; background: var(--bg-code); border: 1px solid var(--accent-primary); border-radius: 8px; padding: 11px 14px; font-size: .78rem; line-height: 1.5; color: var(--text-secondary); box-shadow: 0 10px 34px rgba(0,0,0,.55); pointer-events: none; }
+.tip { position: absolute; z-index: 6; width: 290px; background: var(--bg-code); border: 1px solid var(--accent-primary); border-radius: 8px; padding: 11px 14px; font-size: .78rem; line-height: 1.5; color: var(--text-secondary); box-shadow: 0 10px 34px rgba(0,0,0,.55); pointer-events: none; }
 .tip b { display: block; font-family: var(--font-mono); font-size: .8rem; color: var(--accent-primary); margin-bottom: 5px; }
 .mod u { position: absolute; top: 5px; right: 7px; font-family: var(--font-mono); font-size: .6rem; text-decoration: none; color: var(--text-muted); }
 .mod b { display: block; font-size: .82rem; color: var(--text-primary); }
@@ -314,7 +314,7 @@
 .mod.warn { border-color: var(--accent-warning); background: rgba(255,107,53,.1); }
 .mod.err { border-color: var(--accent-danger); background: rgba(255,56,96,.12); }
 
-.token { position: absolute; top: 0; left: 0; width: 66px; height: 28px; border-radius: 14px; background: var(--gradient-main); color: #06231b; font-family: var(--font-mono); font-size: .66rem; font-weight: 700; display: flex; align-items: center; justify-content: center; opacity: 0; transition: transform .45s cubic-bezier(.4,.1,.3,1), opacity .25s, background .25s; z-index: 2; }
+.token { position: absolute; z-index: 3; top: 0; left: 0; width: 66px; height: 28px; border-radius: 14px; background: var(--gradient-main); color: #06231b; font-family: var(--font-mono); font-size: .66rem; font-weight: 700; display: flex; align-items: center; justify-content: center; opacity: 0; transition: transform .45s cubic-bezier(.4,.1,.3,1), opacity .25s, background .25s; }
 .token small { font-size: .55rem; margin-left: 3px; opacity: .8; }
 .token.on { opacity: 1; }
 .token.bad { background: var(--accent-danger); color: #fff; }
