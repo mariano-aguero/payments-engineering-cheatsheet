@@ -21,6 +21,9 @@ Not a glossary. The page is built around one spine, the lifecycle of a payment, 
 
 ## What's inside
 
+- **An interactive walkthrough** at the top: step one payment through all eight modules with Back and Forward, or press Play. Two scenarios, one that settles and one where the provider times out, with the event log, the payment object, the ledger and the exception queue rebuilding at every step
+- **A field glossary** for every property that payment object carries, what writes it and why it exists
+
 - **Admission**: KYC, KYB, AML, KYT, Travel Rule, sanctions and PEP, with the patterns that turn them into a stage instead of a checkbox
 - **Correctness**: idempotency keys, at-least-once with an idempotent consumer, state machines, authorize/capture/settle, money as an integer
 - **Orchestration**: saga with compensations, why not two phase commit, transactional outbox, inbox and dedup, deadline propagation, ordering per account
